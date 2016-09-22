@@ -123,8 +123,9 @@ def strip(my_file):
         my_body = delete_pattern(matcher, my_body)
     body_length.append(len(my_body))
     
-    print(my_body)
-    print(body_length)
+    #print(my_body)
+    print("Your text originally contained %d words, %d of which were stripped off." %(body_length[0],
+        body_length[0]-body_length[len(body_length)-1]))
     return my_body
 
 if __name__ == '__main__':
