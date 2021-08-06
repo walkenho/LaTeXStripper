@@ -103,13 +103,11 @@ def strip(filename):
                          "",
                          my_body)
 
-    unbraced_commands_to_delete = ["centering", "clearpage", "itemize", "item", "maketitle", "emph", "enumerate"] 
-    for command in unbraced_commands_to_delete:
-        my_body = re.sub(r"\\" + command, "", my_body)
+    stopwords = [r"\\centering", r"\\clearpage", r"\\itemize", r"\\item", r"\\maketitle", r"\\emph", r"\\enumerate",
+                 "Eq", "Figure", "Appendix", "Section", "et al", "Fig\.", "Sec\."]
+    for w in stopwords:
+        my_body = re.sub(w, "", my_body)
 
-    words_to_delete = ["Eq", "Figure", "Appendix", "Section", "et al", "Fig\.", "Sec\."]
-    for word in words_to_delete:
-        my_body = re.sub(word, "", my_body)
     cleaning_process['body_length_final'] = len(my_body.split())
     
     print(f"Your raw document contains {cleaning_process['body_length_raw']} words,"
