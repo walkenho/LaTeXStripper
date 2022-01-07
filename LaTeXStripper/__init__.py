@@ -1,0 +1,1 @@
+from .LaTeXStripper import strip
