@@ -24,111 +24,127 @@
 
 import re
 
-#autofunction:: strip()
 
-def get_body(my_text):
-    """Extracts the body of a LaTeX document, i.e. everything between \\begin{document} and \\end{document}."""
+# autofunction:: strip()
+
+def extract_body(text):
+    """Extract the body of a LaTeX document, i.e. everything between \\begin{document} and \\end{document}."""
     matcher_body = r"\\begin{document}([.\S\s]*)\\end{document}"
-    body = re.findall(matcher_body, my_text)
-    return body[0]
+    return re.findall(matcher_body, text)[0]
 
-def delete_pattern(pattern, my_text):
-    """Deletes all occurences of pattern in my_text. Gives back cleaned text."""
-    return re.sub(pattern, "", my_text)
 
-def delete_comment(my_line):
-    """Deletes all the comments in a text, i.e. everything following % till the end of the line. \
-       Wrapper around delete_pattern."""
-    matcher_comment = r"(%.*)"
-    clean_line = delete_pattern(matcher_comment, my_line)
-    return clean_line
+def delete_pattern(pattern, text):
+    """Delete all occurences of pattern in my_text. Gives back cleaned text."""
+    return re.sub(pattern, "", text)
 
-def delete_formula(my_text):
-    """Deletes all formulas in a text, i.e. everything of the form $...$. \
-       Wrapper around delete_pattern."""
-    matcher_formula = r"(\$[^\$]+\$)"
-    my_text = delete_pattern(matcher_formula, my_text)
-    return my_text
 
-def get_string_from_file(myfile):
-    f = open(myfile, 'r')
-    raw_text = []    
-    for line in f:
-        clean_line = delete_comment(line.rstrip())
-        raw_text.append(clean_line)
-    my_text = ' '.join(raw_text)   
-    return my_text
-    
+def delete_comment(text):
+    """Delete LaTeX comment from the end of a string."""
+    return delete_pattern(r"(%.*)", text)
+
+
+def delete_formulas(text):
+    """Delete all formulas in a text, i.e. everything of the form $...$."""
+    return delete_pattern(r"(\$[^\$]+\$)", text)
+
+
+def read_not_commented_text(myfile):
+    with open(myfile, 'r') as f:
+        raw_text = []
+        # Stripping out comments requires stripping out the comments from the end of the lines
+        for line in f:
+            clean_line = delete_comment(line.rstrip())
+            raw_text.append(clean_line)
+    return ' '.join(raw_text)
+
+
+def delete_braced_command(command, text):
+    # matches \command{whatever}
+    # example: \label{my-fabulous-label}
+    # also matches with option
+    # example: \email[sth-sth]{my-fabulous-email}
+    # second part of regex matches braces and everything in between (which is not a brace)
+    return delete_pattern(rf"\\{command}" + r"(\[[^\]]*]){0,1}{[^}]+}", text)
+
+
+def delete_braced_commands(commands, text):
+    for command in commands:
+        text = delete_braced_command(command, text)
+    return text
+
+
+def delete_unbraced_command(command, text):
+    return delete_pattern(rf"\\{command} ", text)
+
+
+def delete_unbraced_commands(commands, text):
+    for command in commands:
+        text = delete_unbraced_command(command, text)
+    return text
+
+
+def delete_environment(environment, text):
+    return delete_pattern(r"\\begin{" + environment + r"}.+?(?=\\end{" + environment + r"})\\end{" + environment + r"}",
+                          text)
+
+
+def delete_environments(environments, text):
+    for environment in environments:
+        text = delete_environment(environment, text)
+    return text
+
 
 def strip(my_file):
-    """ A small tool to get rid of LaTeX code in .tex files 
-        to be able to run them through a bag-of-words algorithm 
-        (like e.g. WordCloud) and get reasonable results."""
+    """ A tool to delete LaTeX formatting from a .tex file """
     body_length = []
 
-    my_text = get_string_from_file(my_file)
-    my_body = get_body(my_text)
-    body_length.append(len(my_body))
-    
-    my_body = delete_formula(my_body)
-    body_length.append(len(my_body))
+    body = extract_body(read_not_commented_text(my_file))
+    body_length.append(len(body))
 
-    environments_to_delete = ["abstract",\
-                                "equation", \
-                                "eqnarray",\
-                                "figure",\
-                                "tabular",\
-                                "align",\
-                                "subequations"]
-                                
-    for env in environments_to_delete:
-        matcher = r"\\begin{"+env+r"}.+?(?=\\end{"+env+r"})\\end{"+env+r"}"    
-        my_body = delete_pattern(matcher, my_body)
-    body_length.append(len(my_body))
-        
-    braced_commands_to_delete = ["date",\
-                                    "label",\
-                                    "eqref",\
-                                    "ref",\
-                                    "cite",\
-                                    "fig",\
-                                    "bibliography",\
-                                    "title",\
-                                    "subsubsection",\
-                                    "subsection",\
-                                    "section",\
-                                    "author",\
-                                    "affiliation",\
-                                    "textcolor"]
-    for command in braced_commands_to_delete:
-        matcher = r"\\" + command + r"{[^}]+}"
-        my_body = delete_pattern(matcher, my_body)
-    body_length.append(len(my_body))
+    body = delete_formulas(body)
+    body_length.append(len(body))
 
-    braced_commands_with_options_to_delete = ["email"]
-    for command in braced_commands_with_options_to_delete:
-        matcher = r"\\" + command + r"\[[^\]]*]{[^}]+}"
-        my_body = delete_pattern(matcher, my_body)
-    body_length.append(len(my_body))
-    
-    unbraced_commands_to_delete = ["centering", "clearpage", "itemize", "item", "maketitle", "emph", "enumerate"] 
-    for command in unbraced_commands_to_delete:
-        matcher = r"\\" + command
-        my_body = delete_pattern(matcher, my_body)
-    body_length.append(len(my_body))
-          
-    words_to_delete = ["Eq", "Figure", "Appendix", "Section", "et al", "Fig\.", "Sec\."]
-    for word in words_to_delete:
-        matcher = word
-        my_body = delete_pattern(matcher, my_body)
-    body_length.append(len(my_body))
-    
-    #print(my_body)
-    print("Your text originally contained %d words, %d of which were stripped off." %(body_length[0],
-        body_length[0]-body_length[len(body_length)-1]))
-    return my_body
+    body = delete_environments(["abstract", "equation", "eqnarray", "figure", "tabular", "align", "subequations"],
+                               body)
+    body_length.append(len(body))
+
+    body = delete_braced_commands(["date",
+                                   "label",
+                                   "eqref",
+                                   "ref",
+                                   "cite",
+                                   "fig",
+                                   "bibliography",
+                                   "title",
+                                   "subsubsection",
+                                   "subsection",
+                                   "section",
+                                   "author",
+                                   "affiliation",
+                                   "textcolor",
+                                   "email"],
+                                  body)
+    body_length.append(len(body))
+
+    body = delete_unbraced_commands(["centering",
+                                     "clearpage",
+                                     "itemize",
+                                     "item",
+                                     "maketitle",
+                                     "emph",
+                                     "enumerate"],
+                                    body)
+    body_length.append(len(body))
+
+    for word in ["Eq", "Figure", "Appendix", "Section", "et al", "Fig\.", "Sec\."]:
+        body = delete_pattern(word, body)
+    body_length.append(len(body))
+
+    print(f"Your text originally contained {body_length[0]} words, "
+          f"{body_length[0] - body_length[len(body_length) - 1]} of which were stripped off.")
+    return body
+
 
 if __name__ == '__main__':
     my_file = r"paper2.tex"
     strip(my_file)
-    
