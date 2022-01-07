@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 mode: python -*-
 #
-# LaTeXStripper.py - A small tool to get rid of LaTeX code in .tex files 
-# to be able to run them through a bag-of-words algorithm 
-# (like e.g. WordCloud) and get reasonable results.
+# LaTeXStripper.py - A tool to get rid of LaTeX code in .tex files
 #
 # Copyright (c) 2016 J. Walkenhorst
 #
@@ -18,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free So2tware
+# along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA.
 
@@ -27,8 +25,10 @@ import re
 
 # autofunction:: strip()
 
+
 def extract_body(text):
-    """Extract the body of a LaTeX document, i.e. everything between \\begin{document} and \\end{document}."""
+    """Extract the body of a LaTeX document,
+    i.e. everything between \\begin{document} and \\end{document}."""
     matcher_body = r"\\begin{document}([.\S\s]*)\\end{document}"
     return re.findall(matcher_body, text)[0]
 
@@ -48,14 +48,13 @@ def delete_formulas(text):
     return delete_pattern(r"(\$[^\$]+\$)", text)
 
 
-def read_not_commented_text(myfile):
-    with open(myfile, 'r') as f:
+def load_uncommented_text_from_file(filepath):
+    with open(filepath, "r") as f:
         raw_text = []
         # Stripping out comments requires stripping out the comments from the end of the lines
         for line in f:
-            clean_line = delete_comment(line.rstrip())
-            raw_text.append(clean_line)
-    return ' '.join(raw_text)
+            raw_text.append(delete_comment(line.rstrip()))
+    return " ".join(raw_text)
 
 
 def delete_braced_command(command, text):
@@ -84,8 +83,16 @@ def delete_unbraced_commands(commands, text):
 
 
 def delete_environment(environment, text):
-    return delete_pattern(r"\\begin{" + environment + r"}.+?(?=\\end{" + environment + r"})\\end{" + environment + r"}",
-                          text)
+    return delete_pattern(
+        r"\\begin{"
+        + environment
+        + r"}.+?(?=\\end{"
+        + environment
+        + r"})\\end{"
+        + environment
+        + r"}",
+        text,
+    )
 
 
 def delete_environments(environments, text):
@@ -94,57 +101,69 @@ def delete_environments(environments, text):
     return text
 
 
-def strip(my_file):
-    """ A tool to delete LaTeX formatting from a .tex file """
+def strip(filename):
+    """A tool to delete LaTeX formatting from a .tex file"""
     body_length = []
 
-    body = extract_body(read_not_commented_text(my_file))
+    body = extract_body(load_uncommented_text_from_file(filename))
     body_length.append(len(body))
 
     body = delete_formulas(body)
     body_length.append(len(body))
 
-    body = delete_environments(["abstract", "equation", "eqnarray", "figure", "tabular", "align", "subequations"],
-                               body)
+    body = delete_environments(
+        [
+            "abstract",
+            "equation",
+            "eqnarray",
+            "figure",
+            "tabular",
+            "align",
+            "subequations",
+        ],
+        body,
+    )
     body_length.append(len(body))
 
-    body = delete_braced_commands(["date",
-                                   "label",
-                                   "eqref",
-                                   "ref",
-                                   "cite",
-                                   "fig",
-                                   "bibliography",
-                                   "title",
-                                   "subsubsection",
-                                   "subsection",
-                                   "section",
-                                   "author",
-                                   "affiliation",
-                                   "textcolor",
-                                   "email"],
-                                  body)
+    body = delete_braced_commands(
+        [
+            "date",
+            "label",
+            "eqref",
+            "ref",
+            "cite",
+            "fig",
+            "bibliography",
+            "title",
+            "subsubsection",
+            "subsection",
+            "section",
+            "author",
+            "affiliation",
+            "textcolor",
+            "email",
+        ],
+        body,
+    )
     body_length.append(len(body))
 
-    body = delete_unbraced_commands(["centering",
-                                     "clearpage",
-                                     "itemize",
-                                     "item",
-                                     "maketitle",
-                                     "emph",
-                                     "enumerate"],
-                                    body)
+    body = delete_unbraced_commands(
+        ["centering", "clearpage", "itemize", "item", "maketitle", "emph", "enumerate"],
+        body,
+    )
     body_length.append(len(body))
 
     for word in ["Eq", "Figure", "Appendix", "Section", "et al", "Fig\.", "Sec\."]:
         body = delete_pattern(word, body)
     body_length.append(len(body))
 
-    print(f"Your text originally contained {body_length[0]} words, "
-          f"{body_length[0] - body_length[len(body_length) - 1]} of which were stripped off.")
-    return body
+    print(
+        f"Your text originally contained {body_length[0]} words, "
+        f"{body_length[0] - body_length[len(body_length) - 1]} of which were stripped off."
+    )
+    return body.strip()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     my_file = r"paper2.tex"
     strip(my_file)
