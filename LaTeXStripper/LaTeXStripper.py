@@ -19,36 +19,37 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA.
+from __future__ import annotations
 
 import re
+from pathlib import Path
+
+from typing import List, Union
 
 
-# autofunction:: strip()
-
-
-def extract_body(text):
+def extract_body(text: str) -> str:
     """Extract the body of a LaTeX document,
     i.e. everything between \\begin{document} and \\end{document}."""
     matcher_body = r"\\begin{document}([.\S\s]*)\\end{document}"
     return re.findall(matcher_body, text)[0]
 
 
-def delete_pattern(pattern, text):
+def delete_pattern(pattern: str, text: str) -> str:
     """Delete all occurences of pattern in my_text. Gives back cleaned text."""
     return re.sub(pattern, "", text)
 
 
-def delete_comment(text):
+def delete_comment(text: str) -> str:
     """Delete LaTeX comment from the end of a string."""
     return delete_pattern(r"(%.*)", text)
 
 
-def delete_formulas(text):
+def delete_formulas(text: str) -> str:
     """Delete all formulas in a text, i.e. everything of the form $...$."""
     return delete_pattern(r"(\$[^\$]+\$)", text)
 
 
-def load_uncommented_text_from_file(filepath):
+def load_uncommented_text_from_file(filepath: Union[Path, str]) -> str:
     with open(filepath, "r") as f:
         raw_text = []
         # Stripping out comments requires stripping out the comments from the end of the lines
@@ -57,7 +58,7 @@ def load_uncommented_text_from_file(filepath):
     return " ".join(raw_text)
 
 
-def delete_braced_command(command, text):
+def delete_braced_command(command: str, text: str) -> str:
     # matches \command{whatever}
     # example: \label{my-fabulous-label}
     # also matches with option
@@ -66,23 +67,23 @@ def delete_braced_command(command, text):
     return delete_pattern(rf"\\{command}" + r"(\[[^\]]*]){0,1}{[^}]+}", text)
 
 
-def delete_braced_commands(commands, text):
+def delete_braced_commands(commands: List[str], text: str):
     for command in commands:
         text = delete_braced_command(command, text)
     return text
 
 
-def delete_unbraced_command(command, text):
+def delete_unbraced_command(command: str, text: str) -> str:
     return delete_pattern(rf"\\{command} ", text)
 
 
-def delete_unbraced_commands(commands, text):
+def delete_unbraced_commands(commands: List[str], text: str) -> str:
     for command in commands:
         text = delete_unbraced_command(command, text)
     return text
 
 
-def delete_environment(environment, text):
+def delete_environment(environment: str, text: str) -> str:
     return delete_pattern(
         r"\\begin{"
         + environment
@@ -95,14 +96,14 @@ def delete_environment(environment, text):
     )
 
 
-def delete_environments(environments, text):
+def delete_environments(environments: List[str], text: str) -> str:
     for environment in environments:
         text = delete_environment(environment, text)
     return text
 
 
-def strip(filename):
-    """A tool to delete LaTeX formatting from a .tex file"""
+def strip(filename: Union[Path, str]) -> str:
+    """Delete LaTeX formatting from a .tex file"""
     body_length = []
 
     body = extract_body(load_uncommented_text_from_file(filename))
@@ -162,8 +163,3 @@ def strip(filename):
         f"{body_length[0] - body_length[len(body_length) - 1]} of which were stripped off."
     )
     return body.strip()
-
-
-if __name__ == "__main__":
-    my_file = r"paper2.tex"
-    strip(my_file)
