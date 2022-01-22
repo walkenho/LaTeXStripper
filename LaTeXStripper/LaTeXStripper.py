@@ -19,12 +19,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA.
-from __future__ import annotations
 
 import re
-from pathlib import Path
-
-from typing import List, Union
+from typing import List
 
 
 def extract_body(text: str) -> str:
@@ -35,7 +32,7 @@ def extract_body(text: str) -> str:
 
 
 def delete_pattern(pattern: str, text: str) -> str:
-    """Delete all occurences of pattern in my_text. Gives back cleaned text."""
+    """Delete all occurrences of pattern in my_text. Gives back cleaned text."""
     return re.sub(pattern, "", text)
 
 
@@ -49,13 +46,8 @@ def delete_formulas(text: str) -> str:
     return delete_pattern(r"(\$[^\$]+\$)", text)
 
 
-def load_uncommented_text_from_file(filepath: Union[Path, str]) -> str:
-    with open(filepath, "r") as f:
-        raw_text = []
-        # Stripping out comments requires stripping out the comments from the end of the lines
-        for line in f:
-            raw_text.append(delete_comment(line.rstrip()))
-    return " ".join(raw_text)
+def delete_comments(text: str) -> str:
+    return " ".join([delete_comment(line.rstrip()) for line in text.split("\n")])
 
 
 def delete_braced_command(command: str, text: str) -> str:
@@ -102,11 +94,11 @@ def delete_environments(environments: List[str], text: str) -> str:
     return text
 
 
-def strip(filename: Union[Path, str]) -> str:
-    """Delete LaTeX formatting from a .tex file"""
+def strip_text(text: str) -> str:
+    """Delete LaTeX formatting from .tex text"""
     body_length = []
 
-    body = extract_body(load_uncommented_text_from_file(filename))
+    body = extract_body(delete_comments(text))
     body_length.append(len(body))
 
     body = delete_formulas(body)

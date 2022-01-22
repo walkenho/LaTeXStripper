@@ -1,1 +1,1 @@
-from .LaTeXStripper import strip
+from .LaTeXStripper import strip_text
