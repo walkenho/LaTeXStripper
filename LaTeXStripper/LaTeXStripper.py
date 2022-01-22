@@ -146,7 +146,7 @@ def strip_text(text: str) -> str:
     )
     body_length.append(len(body))
 
-    for word in ["Eq", "Figure", "Appendix", "Section", "et al", "Fig\.", "Sec\."]:
+    for word in ["Eq", "Figure", "Appendix", "Section", "et al", r"Fig\.", r"Sec\."]:
         body = delete_pattern(word, body)
     body_length.append(len(body))
 
