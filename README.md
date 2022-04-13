@@ -1,4 +1,4 @@
 # LaTeXStripper
 A python module to get rid of LaTeX code in .tex files.
-This can e.g. be used to be able to run originally LaTeX formatted text through a bag-of-words
-algorithm and get reasonable results.
+
+This can be used to prepare text written using LaTeX for statistical text-analysis using for example a bag-of-words algorithm.
