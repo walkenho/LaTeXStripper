@@ -26,15 +26,52 @@ import re
 
 #autofunction:: strip()
 
+STOPWORDS = [r"\\centering", r"\\clearpage", r"\\itemize", r"\\item", r"\\maketitle", r"\\emph", r"\\enumerate",
+                 "Eq", "Figure", "Appendix", "Section", "et al", "Fig\.", "Sec\."]
+
+BRACED_COMMANDS_TO_DELETE = ["date",
+                                 "label",
+                                 "eqref",
+                                 "ref",
+                                 "cite",
+                                 "fig",
+                                 "bibliography",
+                                 "title",
+                                 "subsubsection",
+                                 "subsection",
+                                 "section",
+                                 "author",
+                                 "affiliation",
+                                 "textcolor"]
+
+# include {} in variable, since not allowed in f-string
+ENVIRONMENTS_TO_DELETE = ["{abstract}",
+                          "{equation}",
+                          "{eqnarray}",
+                          "{figure}",
+                          "{tabular}",
+                          "{align}",
+                          "{subequations}"]
+
+
+def create_braced_regex(command):
+    # {} need to be outside of f-string
+    return rf"\\{command}" + r"{[^}]+}"
+
 
 def delete_comment(line: str) -> str:
-    """Delete latex comment from a string (delete everything following a %, but not following a \%)."""
+    """Delete latex comments from a string.
+
+     Deletes everything following a %, but not following a \%).
+     """
     return re.sub(r"(?<!\\)(%.*)", "", line)
 
 
 def delete_formula(my_text):
-    """Deletes all formulas in a text, i.e. everything of the form $...$. \
-       Wrapper around delete_pattern."""
+    """Delete all formulas in a text
+
+     Deletes everything in between $...$ including the $ symbols.
+     """
     my_text = re.sub(r"(\$[^\$]+\$)", "", my_text)
     return my_text
 
@@ -52,7 +89,7 @@ def extract_document(latexdocument):
         print("Document contains no body")
 
 
-def strip(filename):
+def strip(filename, stopwords, braced_commands_to_delete, environments_to_delete):
     """ A small tool to get rid of LaTeX code in .tex files 
         to be able to run them through a bag-of-words algorithm 
         (like e.g. WordCloud) and get reasonable results."""
@@ -64,47 +101,16 @@ def strip(filename):
     
     my_body = delete_formula(body_raw)
 
-    # include {} in variable, since not allowed in f-string
-    environments_to_delete = ["{abstract}",\
-                                "{equation}", \
-                                "{eqnarray}",\
-                                "{figure}",\
-                                "{tabular}",\
-                                "{align}",\
-                                "{subequations}"]
-                                
     for env in environments_to_delete:
-        my_body = re.sub(rf"\\begin{env}.+?(?=\\end{env})\\end{env}",
-                         "",
-                         my_body)
+        my_body = re.sub(rf"\\begin{env}.+?(?=\\end{env})\\end{env}", "", my_body)
 
-    braced_commands_to_delete = ["date",\
-                                    "label",\
-                                    "eqref",\
-                                    "ref",\
-                                    "cite",\
-                                    "fig",\
-                                    "bibliography",\
-                                    "title",\
-                                    "subsubsection",\
-                                    "subsection",\
-                                    "section",\
-                                    "author",\
-                                    "affiliation",\
-                                    "textcolor"]
     for command in braced_commands_to_delete:
-        my_body = re.sub(r"\\" + command + r"{[^}]+}",
-                         "",
-                         my_body)
+        my_body = re.sub(create_braced_regex(command), "", my_body)
 
     braced_commands_with_options_to_delete = ["email"]
     for command in braced_commands_with_options_to_delete:
-        my_body = re.sub(r"\\" + command + r"\[[^\]]*]{[^}]+}",
-                         "",
-                         my_body)
+        my_body = re.sub(r"\\" + command + r"\[[^\]]*]{[^}]+}", "", my_body)
 
-    stopwords = [r"\\centering", r"\\clearpage", r"\\itemize", r"\\item", r"\\maketitle", r"\\emph", r"\\enumerate",
-                 "Eq", "Figure", "Appendix", "Section", "et al", "Fig\.", "Sec\."]
     for w in stopwords:
         my_body = re.sub(w, "", my_body)
 
@@ -117,7 +123,17 @@ def strip(filename):
     return my_body
 
 
+def create_regex(entry, entry_type):
+    if entry_type == 'command':
+        return r''
+    if command_type == 'braced_command':
+
+
+
 if __name__ == '__main__':
-    my_file = r"paper2.tex"
-    strip(my_file)
-    
+    my_file = r"paper.tex"
+    strip(my_file,
+          stopwords=STOPWORDS,
+          braced_commands_to_delete=BRACED_COMMANDS_TO_DELETE,
+          environments_to_delete=ENVIRONMENTS_TO_DELETE
+          )
